@@ -32,9 +32,14 @@ def convert_linear(value, max_value):
     return round(value * 255 / max_value)
 
 def convert_log(value, base):
-    return round(
-            math.log(value, base)*127.5 if value >= 1 else 0
-        )
+    try:
+        return round(
+                math.log(value, base)*127.5 if value >= 1 else 0
+            )
+    except ZeroDivisionError:
+        print('Error #ZeroDivisionError')
+        print(value, base)
+        raise
 
 def export_image(filename:str, byte_counter:Counter):
     size = 16
@@ -45,7 +50,7 @@ def export_image(filename:str, byte_counter:Counter):
     else:
         pixel1d = [convert_log(byte_counter[i], base) for i in range(256)]
     
-    print(pixel1d)
+    #print(pixel1d)
     pixels = [pixel1d[i * size:(i + 1) * size] for i in range(size)]
     final_image = Image.fromarray(np.array(pixels), 'L')
     final_image.save(filename)
