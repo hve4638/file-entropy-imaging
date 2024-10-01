@@ -33,8 +33,16 @@ def convert_linear(value, max_value):
 
 def convert_log(value, base):
     try:
+        if base == 1.0:
+            return 255 if value > 0 else 0
+        elif value >= 1:
+            return round(
+                math.log(value, base)*127.5
+            )
+        else:
+            return 0
         return round(
-                math.log(value, base)*127.5 if value >= 1 else 0
+                math.log(value, base)*127.5 if value > 1 else 0
             )
     except ZeroDivisionError:
         print('Error #ZeroDivisionError')
@@ -50,9 +58,11 @@ def export_image(filename:str, byte_counter:Counter):
     else:
         pixel1d = [convert_log(byte_counter[i], base) for i in range(256)]
     
-    #print(pixel1d)
     pixels = [pixel1d[i * size:(i + 1) * size] for i in range(size)]
-    final_image = Image.fromarray(np.array(pixels), 'L')
+    if args.verbose:
+        for pixel1d in pixels:
+            print(pixel1d)
+    final_image = Image.fromarray(np.array(pixels, dtype=np.uint8), 'L')
     final_image.save(filename)
 
 def print_byte_frequency(byte_counter:Counter):
