@@ -3,6 +3,17 @@ import os
 import numpy as np
 from PIL import Image
 import sys
+import math
+import argparse
+parser = argparse.ArgumentParser()
+
+parser.add_argument('filename')
+parser.add_argument('--verbose', action='store_true')
+parser.add_argument('--linear', action='store_true')
+parser.add_argument('--log', action='store_true')
+parser.add_argument('-O', '--output', default='./export')
+
+args = parser.parse_args()
 
 def get_dataset_path(dirpath):
     result = []
@@ -17,19 +28,40 @@ def count_byte_frequency(filename:str) -> Counter:
     frequency = Counter(byte_groups)
     return frequency
 
+def convert_linear(value, max_value):
+    return round(value * 255 / max_value)
+
+def convert_log(value, base):
+    return round(
+            math.log(value, base)*127.5 if value >= 1 else 0
+        )
+
 def export_image(filename:str, byte_counter:Counter):
     size = 16
     max_prob = byte_counter.most_common(1)[0][1]
-    pixel1d = [round(byte_counter[i]*255/max_prob) for i in range(256)]
+    base = math.sqrt(max_prob)
+    if args.linear:
+        pixel1d = [convert_linear(byte_counter[i], max_prob) for i in range(256)]
+    else:
+        pixel1d = [convert_log(byte_counter[i], base) for i in range(256)]
+    
+    print(pixel1d)
     pixels = [pixel1d[i * size:(i + 1) * size] for i in range(size)]
-    # print(pixels)
     final_image = Image.fromarray(np.array(pixels), 'L')
     final_image.save(filename)
 
-# dataset_dirpath = './dataset/normal'
-datasetpath = get_dataset_path(sys.argv[1])
+def print_byte_frequency(byte_counter:Counter):
+    max_prob = byte_counter.most_common(1)[0][1]
+    for value, frequency in byte_counter.most_common():
+        print("0x{:02x}: {:<6} {}".format(value, frequency, "█" * int(frequency * 80/max_prob)))
+
+datasetpath = get_dataset_path(args.filename)
 
 for dir, file in datasetpath:
-    os.makedirs(f'./export/{dir}', exist_ok=True)
+    os.makedirs(f'{args.output}/{dir}', exist_ok=True)
     counter = count_byte_frequency(f'{dir}/{file}')
-    export_image(f'./export/{dir}/{file}.png', counter)
+    if args.verbose:
+        print(f'{file}')
+        print_byte_frequency(counter)
+        print()
+    export_image(f'./{args.output}/{dir}/{file}.png', counter)
