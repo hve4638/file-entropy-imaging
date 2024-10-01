@@ -69,4 +69,9 @@ for dir, file in datasetpath:
         print(f'{file}')
         print_byte_frequency(counter)
         print()
-    export_image(f'./{args.output}/{dir}/{file}.png', counter)
+    try:
+        export_image(f'./{args.output}/{dir}/{file}.png', counter)
+    except:
+        print('Error Occured!')
+        print(f'{dir}/{file}')
+        break
